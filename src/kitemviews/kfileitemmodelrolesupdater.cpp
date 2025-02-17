@@ -556,9 +556,21 @@ void KFileItemModelRolesUpdater::slotGotPreview(const KFileItem &item, const QPi
     QHash<QByteArray, QVariant> data = rolesData(item, index);
 
     const QStringList overlays = data["iconOverlays"].toStringList();
-    if (!pixmap.isNull() && !overlays.isEmpty()) {
-        const QSize cacheSize = (m_iconSize.width() > 128) || (m_iconSize.height() > 128) ? QSize(256, 256) : QSize(128, 128);
-        scaledPixmap = KIconUtils::addOverlays(scaledPixmap, overlays).pixmap(cacheSize, m_devicePixelRatio);
+    if (!scaledPixmap.isNull() && !overlays.isEmpty()) {
+        // Calculate proper size based on original pixmap dimensions
+        QSize targetSize = scaledPixmap.size();
+        if (targetSize.width() < m_iconSize.width() || targetSize.height() < m_iconSize.height()) {
+            targetSize = m_iconSize;
+        }
+
+        // Ensure minimum size for overlays
+        const int minSize = qMax(m_iconSize.width(), m_iconSize.height());
+        if (targetSize.width() < minSize || targetSize.height() < minSize) {
+            targetSize = QSize(minSize, minSize);
+        }
+
+        scaledPixmap = KIconUtils::addOverlays(scaledPixmap, overlays)
+            .pixmap(targetSize, m_devicePixelRatio);
     }
 
     data.insert("iconPixmap", scaledPixmap);
